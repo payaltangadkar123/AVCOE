@@ -1,0 +1,72 @@
+#Commands :
+#1.	!pip install tensorflow keras torch torchvision
+#2.	!pip install -q tensorflow keras torch torchvision
+#Code :
+import numpy as np
+
+# -----------------------------------------
+# ✅ 1) TensorFlow + Keras
+# -----------------------------------------
+print("\n--- TensorFlow / Keras Demo ---")
+
+import tensorflow as tf
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import Dense
+
+# Dummy data
+X = np.random.rand(50, 3)
+y = np.random.randint(2, size=50)
+
+model = Sequential([
+    Dense(4, activation='relu', input_shape=(3,)),
+    Dense(1, activation='sigmoid')
+])
+
+model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
+model.fit(X, y, epochs=2)
+
+print("✅ TensorFlow / Keras model trained!")
+
+# -----------------------------------------
+# ✅ 3) PyTorch
+# -----------------------------------------
+print("\n--- PyTorch Demo ---")
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+X_torch = torch.rand(50, 3)
+y_torch = torch.randint(0, 2, (50,)).float()
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc = nn.Linear(3, 1)
+
+    def forward(self, x):
+        return torch.sigmoid(self.fc(x))
+
+model_t = Model()
+loss_fn = nn.BCELoss()
+optimz = optim.Adam(model_t.parameters(), lr=0.01)
+
+for epoch in range(2):
+    optimz.zero_grad()
+    out = model_t(X_torch).squeeze()
+    loss = loss_fn(out, y_torch)
+    loss.backward()
+    optimz.step()
+    print("Epoch", epoch+1, "Loss:", loss.item())
+
+print("✅ PyTorch model trained!")
+
+# -----------------------------------------
+# ✅ 2) Theano (fallback because deprecated)
+# -----------------------------------------
+print("\n--- Theano Demo (Fallback) ---")
+
+def theano_linear(x, w, b):
+    return w*x + b
+
+print("✅ Theano Result (simulated):", theano_linear(2, 3, 4))   # → 10
