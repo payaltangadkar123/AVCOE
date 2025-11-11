@@ -1,0 +1,74 @@
+# ----------------------------------------------------
+# a) Load pre-trained CNN model  (MobileNetV2)
+#     + Load online dataset (CIFAR-10)
+# ----------------------------------------------------
+import tensorflow as tf
+import tensorflow_datasets as tfds
+from tensorflow.keras.applications import MobileNetV2
+from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
+from tensorflow.keras.models import Model
+
+# Load CIFAR-10 online
+(train_ds, test_ds), info = tfds.load(
+    'cifar10',
+    split=['train', 'test'],
+    as_supervised=True,
+    with_info=True
+)
+
+# Resize + Normalize
+def preprocess(img, label):
+    img = tf.image.resize(img, (128,128))
+    img = tf.cast(img, tf.float32) / 255.0
+    return img, label
+
+BATCH = 32
+train_ds = train_ds.map(preprocess).batch(BATCH)
+test_ds  = test_ds.map(preprocess).batch(BATCH)
+
+# ----------------------------------------------------
+# b) Load + Freeze pretrained CNN layers
+# ----------------------------------------------------
+base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(128,128,3))
+
+for layer in base_model.layers:
+    layer.trainable = False
+
+# ----------------------------------------------------
+# c) Add custom classifier
+# ----------------------------------------------------
+x = base_model.output
+x = GlobalAveragePooling2D()(x)
+x = Dense(128, activation='relu')(x)
+pred = Dense(info.features['label'].num_classes, activation='softmax')(x)
+
+model = Model(inputs=base_model.input, outputs=pred)
+
+# ----------------------------------------------------
+# d) Train classifier layers (new layers only)
+# ----------------------------------------------------
+model.compile(optimizer='adam',
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
+
+print("\nTraining only classifier layers...")
+model.fit(train_ds, validation_data=test_ds, epochs=3)
+
+# ----------------------------------------------------
+# e) Fine-Tuning: unfreeze deeper layers
+# ----------------------------------------------------
+for layer in base_model.layers[-20:]:   # unfreeze last 20 layers
+    layer.trainable = True
+
+model.compile(optimizer=tf.keras.optimizers.Adam(1e-5),
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
+
+print("\nFine-tuning model...")
+model.fit(train_ds, validation_data=test_ds, epochs=2)
+
+# Evaluate
+loss, acc = model.evaluate(test_ds)
+print("\nFinal Test Accuracy:", acc)
+
+
