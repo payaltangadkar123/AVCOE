@@ -1,0 +1,64 @@
+# --------------------------------------------
+# a) Data Preparation
+# --------------------------------------------
+import numpy as np
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Embedding, Dense, Flatten
+
+# Sample corpus
+text = "I love deep learning and I love neural networks"
+
+# Tokenize
+tokenizer = Tokenizer()
+tokenizer.fit_on_texts([text])
+word_index = tokenizer.word_index
+vocab_size = len(word_index) + 1
+
+# Convert text → sequence of numbers
+seq = tokenizer.texts_to_sequences([text])[0]
+
+# --------------------------------------------
+# b) Generate training data (Context → Target)
+# CBOW example: context predicts center word
+# window size = 2
+# --------------------------------------------
+window = 2
+X = []
+y = []
+
+for i in range(window, len(seq) - window):
+    context = seq[i-window:i] + seq[i+1:i+window+1]
+    target = seq[i]
+    X.append(context)
+    y.append(target)
+
+X = np.array(X)
+y = to_categorical(y, num_classes=vocab_size)
+
+# --------------------------------------------
+# c) Train Model
+# --------------------------------------------
+model = Sequential([
+    Embedding(vocab_size, 8, input_length=window*2),
+    Flatten(),
+    Dense(32, activation='relu'),
+    Dense(vocab_size, activation='softmax')
+])
+
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+model.fit(X, y, epochs=200, verbose=0)
+
+# --------------------------------------------
+# d) Output
+# --------------------------------------------
+# Predict word from context (first example)
+test = X[0].reshape(1, -1)
+pred = model.predict(test, verbose=0)
+pred_word = tokenizer.index_word[np.argmax(pred)]
+
+print("Context:", [tokenizer.index_word[w] for w in X[0]])
+print("Predicted target word:", pred_word)
+
+
