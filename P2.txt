@@ -1,0 +1,51 @@
+# Practical – Feedforward Neural Network (Keras + TensorFlow)
+
+# (a) Import necessary packages
+import tensorflow as tf
+from tensorflow.keras import layers, models
+import matplotlib.pyplot as plt
+
+# (b) Load training & testing data (MNIST)
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+
+# Normalizing data
+x_train = x_train.reshape(-1, 28*28) / 255.0
+x_test  = x_test.reshape(-1, 28*28) / 255.0
+
+# (c) Define Network Architecture (Keras Sequential)
+model = models.Sequential([
+    layers.Dense(128, activation="relu", input_shape=(784,)),
+    layers.Dense(64, activation="relu"),
+    layers.Dense(10, activation="softmax")
+])
+
+# (d) Train model using SGD
+model.compile(optimizer="sgd", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
+history = model.fit(x_train, y_train, epochs=5, batch_size=32, validation_split=0.1)
+
+# (e) Evaluate the network
+test_loss, test_acc = model.evaluate(x_test, y_test)
+print("Test Accuracy:", test_acc)
+
+# (f) Plot Training Loss & Accuracy
+plt.figure(figsize=(12,4))
+
+# Loss
+plt.subplot(1,2,1)
+plt.plot(history.history["loss"], label="Train Loss")
+plt.plot(history.history["val_loss"], label="Val Loss")
+plt.title("Training vs Validation Loss")
+plt.legend()
+
+# Accuracy
+plt.subplot(1,2,2)
+plt.plot(history.history["accuracy"], label="Train Accuracy")
+plt.plot(history.history["val_accuracy"], label="Val Accuracy")
+plt.title("Training vs Validation Accuracy")
+plt.legend()
+
+plt.show()
+
+
+
+
